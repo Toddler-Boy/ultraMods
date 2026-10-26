@@ -30,6 +30,8 @@ set (mods_dir ${CMAKE_BINARY_DIR}/mods)
 
 include (common/spatial_audio_fix/spatial_audio_fix.cmake)
 
+add_subdirectory (ultraPatcher)
+
 # One folder per game, one per mod inside it; a mod with a CMakeLists.txt is built here
 file (GLOB mod_lists CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*/*/CMakeLists.txt")
 foreach (mod_list ${mod_lists})

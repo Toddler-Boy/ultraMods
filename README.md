@@ -8,6 +8,8 @@ Game mods, one folder per game and one per mod inside it. Code that more than on
 | Far Cry 4 | Spatial Audio Fix | The same, as `xinput9_1_0.dll` |
 | Far Cry Primal | Spatial Audio Fix | The same, as `xinput9_1_0.dll` |
 
+`ultraPatcher` switches a game's byte patches on and off, see its [README](ultraPatcher/README.md).
+
 ## Building
 
 Windows, Visual Studio 2026 with clang-cl, CMake 4.3, 7-Zip on the path.
