@@ -221,11 +221,23 @@ namespace
 	std::vector<Patch>	patches;
 	HWND				window = nullptr;
 	HWND				header = nullptr;
+	HWND				line = nullptr;		// between header and list
+	HWND				list = nullptr;		// the patch rows, scrolled
 	HWND				status = nullptr;
+	HFONT				font = nullptr;
+
+	// In pixels; set by layout (), scrollY by scrollTo ()
+	int					contentHeight = 0;
+	int					listTop = 0;
+	int					listBottom = 0;
+	int					rowHeight = 0;
+	int					frameWidth = 0;
+	int					minFrameHeight = 0;
+	int					maxFrameHeight = 0;
+	int					scrollY = 0;
 
 	constexpr auto	headerText = L"Tick a patch to turn it on, untick it to turn it off. The sliders set a patch's value. Every change goes "
 								 L"into the game right away. Close ultraPatcher before you start the game.";
-	HFONT				font = nullptr;
 
 	std::wstring widen ( const std::string_view s )
 	{
@@ -545,7 +557,22 @@ namespace
 		}
 	}
 
-	// Places every control for dpi and sizes the window to fit, at the top left of suggested if given
+	void scrollTo ( const int y )
+	{
+		RECT	client {};
+		GetClientRect ( list, &client );
+
+		const auto	to = std::clamp ( y, 0, std::max ( 0, contentHeight - int ( client.bottom ) ) );
+
+		ScrollWindowEx ( list, 0, scrollY - to, nullptr, nullptr, nullptr, nullptr, SW_SCROLLCHILDREN | SW_INVALIDATE | SW_ERASE );
+		scrollY = to;
+
+		const SCROLLINFO	info { sizeof ( info ), SIF_RANGE | SIF_PAGE | SIF_POS | SIF_DISABLENOSCROLL, 0, contentHeight - 1, UINT ( client.bottom ), scrollY };
+		SetScrollInfo ( list, SB_VERT, &info, TRUE );
+	}
+
+	// Places every control for dpi and sizes the window to fit, up to the height of the screen's work area; centred on the
+	// screen, or at the top left of suggested if given
 	void layout ( const UINT dpi, const RECT* suggested )
 	{
 		const auto	px = [ dpi ] ( const int v ) { return MulDiv ( v, int ( dpi ), 96 ); };
@@ -576,15 +603,19 @@ namespace
 			width = std::max ( width, px ( 24 ) + textWidth ( label ( p, p.value ? p.value->min : 0.0 ) ) );
 		}
 
-		RECT	headerSize { 0, 0, width, 0 };
+		const auto	margin = px ( 16 );
+		const auto	clientWidth = margin + width + margin + GetSystemMetricsForDpi ( SM_CXVSCROLL, dpi );
+		const auto	headerWidth = clientWidth - 2 * margin;
+
+		RECT	headerSize { 0, 0, headerWidth, 0 };
 		DrawTextW ( dc, headerText, -1, &headerSize, DT_CALCRECT | DT_WORDBREAK );
 
 		SelectObject ( dc, old );
 		ReleaseDC ( window, dc );
 
-		const auto	margin = px ( 16 );
-		const auto	row = int ( tm.tmHeight ) + px ( 10 );
-		auto		y = margin;
+		auto		y = 0;
+
+		rowHeight = int ( tm.tmHeight ) + px ( 10 );
 
 		const auto	place = [ & ] ( const HWND control, const int x, const int h )
 		{
@@ -593,12 +624,11 @@ namespace
 			y += h;
 		};
 
-		place ( header, 0, headerSize.bottom );
-		y += px ( 12 );
+		scrollY = 0;
 
 		for ( const auto& p : patches )
 		{
-			place ( p.check, 0, row );
+			place ( p.check, 0, rowHeight );
 			if ( p.slider )
 			{
 				SendMessageW ( p.slider, TBM_SETTHUMBLENGTH, px ( 20 ), 0 );
@@ -606,16 +636,79 @@ namespace
 			}
 		}
 
+		contentHeight = y;
+
+		SendMessageW ( header, WM_SETFONT, WPARAM ( font ), TRUE );
+		MoveWindow ( header, margin, margin, headerWidth, headerSize.bottom, TRUE );
+		MoveWindow ( line, margin, margin + headerSize.bottom + px ( 10 ), headerWidth, 2, TRUE );
+
 		RECT	bar {};
 		SendMessageW ( status, WM_SETFONT, WPARAM ( font ), FALSE );
 		SendMessageW ( status, WM_SIZE, 0, 0 );
 		GetWindowRect ( status, &bar );
 
-		RECT	frame { 0, 0, width + 2 * margin, y + margin + bar.bottom - bar.top };
-		AdjustWindowRectExForDpi ( &frame, DWORD ( GetWindowLongW ( window, GWL_STYLE ) ), FALSE, 0, dpi );
+		listTop = margin + headerSize.bottom + px ( 10 ) + 2 + px ( 10 );
+		listBottom = margin + bar.bottom - bar.top;
 
-		SetWindowPos ( window, nullptr, suggested ? suggested->left : 0, suggested ? suggested->top : 0, frame.right - frame.left,
-					   frame.bottom - frame.top, SWP_NOZORDER | SWP_NOACTIVATE | ( suggested ? 0 : SWP_NOMOVE ) );
+		const auto	style = DWORD ( GetWindowLongW ( window, GWL_STYLE ) );
+		const auto	frameOf = [ & ] ( const int clientHeight )
+		{
+			RECT	frame { 0, 0, clientWidth, clientHeight };
+			AdjustWindowRectExForDpi ( &frame, style, FALSE, 0, dpi );
+			return frame;
+		};
+
+		frameWidth = frameOf ( 0 ).right - frameOf ( 0 ).left;
+		minFrameHeight = frameOf ( listTop + 2 * rowHeight + listBottom ).bottom - frameOf ( 0 ).top;
+		maxFrameHeight = frameOf ( listTop + contentHeight + listBottom ).bottom - frameOf ( 0 ).top;
+
+		MONITORINFO	monitor { sizeof ( monitor ) };
+		GetMonitorInfoW ( suggested ? MonitorFromRect ( suggested, MONITOR_DEFAULTTONEAREST ) : MonitorFromWindow ( window, MONITOR_DEFAULTTONEAREST ),
+						  &monitor );
+
+		const auto&	work = monitor.rcWork;
+		const auto	height = std::min ( maxFrameHeight, int ( work.bottom - work.top ) );
+		const auto	left = suggested ? suggested->left : ( work.left + work.right - frameWidth ) / 2;
+		const auto	top = suggested ? suggested->top : ( work.top + work.bottom - height ) / 2;
+
+		SetWindowPos ( window, nullptr, left, top, frameWidth, height, SWP_NOZORDER | SWP_NOACTIVATE );
+		scrollTo ( 0 );
+	}
+
+	LRESULT CALLBACK listProc ( const HWND hwnd, const UINT message, const WPARAM wParam, const LPARAM lParam )
+	{
+		switch ( message )
+		{
+			case WM_VSCROLL:
+			{
+				SCROLLINFO	info { sizeof ( info ), SIF_ALL };
+				GetScrollInfo ( hwnd, SB_VERT, &info );
+
+				switch ( LOWORD ( wParam ) )
+				{
+					case SB_LINEUP:			scrollTo ( scrollY - rowHeight );			break;
+					case SB_LINEDOWN:		scrollTo ( scrollY + rowHeight );			break;
+					case SB_PAGEUP:			scrollTo ( scrollY - int ( info.nPage ) );	break;
+					case SB_PAGEDOWN:		scrollTo ( scrollY + int ( info.nPage ) );	break;
+					case SB_THUMBTRACK:
+					case SB_THUMBPOSITION:	scrollTo ( info.nTrackPos );				break;
+					case SB_TOP:			scrollTo ( 0 );								break;
+					case SB_BOTTOM:			scrollTo ( contentHeight );					break;
+				}
+				return 0;
+			}
+
+			case WM_MOUSEWHEEL:
+				scrollTo ( scrollY - GET_WHEEL_DELTA_WPARAM ( wParam ) * 3 * rowHeight / WHEEL_DELTA );
+				return 0;
+
+			case WM_COMMAND:
+			case WM_HSCROLL:
+			case WM_CTLCOLORSTATIC:
+				return SendMessageW ( window, message, wParam, lParam );
+		}
+
+		return DefWindowProcW ( hwnd, message, wParam, lParam );
 	}
 
 	// Shows text in the status bar for a few seconds, then "Ready" again
@@ -661,6 +754,17 @@ namespace
 
 			case WM_SIZE:
 				SendMessageW ( status, WM_SIZE, 0, 0 );
+				MoveWindow ( list, 0, listTop, LOWORD ( lParam ), std::max ( 0, HIWORD ( lParam ) - listTop - listBottom ), TRUE );
+				scrollTo ( scrollY );
+				return 0;
+
+			case WM_GETMINMAXINFO:
+				if ( frameWidth > 0 )
+				{
+					auto&	info = *reinterpret_cast<MINMAXINFO*> ( lParam );
+					info.ptMinTrackSize = { frameWidth, minFrameHeight };
+					info.ptMaxTrackSize = { frameWidth, maxFrameHeight };
+				}
 				return 0;
 
 			case WM_TIMER:
@@ -705,23 +809,31 @@ int WINAPI wWinMain ( const HINSTANCE instance, HINSTANCE, PWSTR, const int show
 								  .lpszClassName = L"ultraPatcher" };
 	RegisterClassW ( &windowClass );
 
-	window = CreateWindowExW ( 0, L"ultraPatcher", ( title + L" patches" ).c_str (), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-							   CW_USEDEFAULT, CW_USEDEFAULT, 400, 300, nullptr, nullptr, instance, nullptr );
+	const WNDCLASSW	listClass { .lpfnWndProc = listProc, .hInstance = instance, .hCursor = LoadCursorW ( nullptr, IDC_ARROW ),
+								.hbrBackground = HBRUSH ( COLOR_WINDOW + 1 ), .lpszClassName = L"ultraPatcherList" };
+	RegisterClassW ( &listClass );
+
+	window = CreateWindowExW ( 0, L"ultraPatcher", ( title + L" patches" ).c_str (),
+							   WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_THICKFRAME | WS_CLIPCHILDREN, CW_USEDEFAULT,
+							   CW_USEDEFAULT, 400, 300, nullptr, nullptr, instance, nullptr );
 
 	header = CreateWindowExW ( 0, L"STATIC", headerText, WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, window, nullptr, instance, nullptr );
+	line = CreateWindowExW ( 0, L"STATIC", L"", WS_CHILD | WS_VISIBLE | SS_ETCHEDHORZ, 0, 0, 0, 0, window, nullptr, instance, nullptr );
+	list = CreateWindowExW ( WS_EX_CONTROLPARENT, L"ultraPatcherList", L"", WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_CLIPCHILDREN, 0, 0, 0,
+							 0, window, nullptr, instance, nullptr );
 	status = CreateWindowExW ( 0, STATUSCLASSNAMEW, L"Ready", WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, window, nullptr, instance, nullptr );
 
 	for ( size_t i = 0; i < patches.size (); ++i )
 	{
 		auto&	p = patches[ i ];
 
-		p.check = CreateWindowExW ( 0, L"BUTTON", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 0, 0, 0, 0, window,
+		p.check = CreateWindowExW ( 0, L"BUTTON", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 0, 0, 0, 0, list,
 									HMENU ( i + 1 ), instance, nullptr );
 
 		if ( p.value )
 		{
 			p.slider = CreateWindowExW ( 0, TRACKBAR_CLASSW, L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | TBS_NOTICKS | TBS_FIXEDLENGTH, 0, 0,
-										 0, 0, window, nullptr, instance, nullptr );
+										 0, 0, list, nullptr, instance, nullptr );
 			SendMessageW ( p.slider, TBM_SETRANGEMIN, FALSE, 0 );
 			SendMessageW ( p.slider, TBM_SETRANGEMAX, FALSE, std::lround ( ( p.value->max - p.value->min ) / p.value->step ) );
 		}
@@ -735,6 +847,9 @@ int WINAPI wWinMain ( const HINSTANCE instance, HINSTANCE, PWSTR, const int show
 	MSG	message;
 	while ( GetMessageW ( &message, nullptr, 0, 0 ) > 0 )
 	{
+		if ( message.message == WM_MOUSEWHEEL )
+			message.hwnd = list;
+
 		if ( IsDialogMessageW ( window, &message ) )
 			continue;
 
