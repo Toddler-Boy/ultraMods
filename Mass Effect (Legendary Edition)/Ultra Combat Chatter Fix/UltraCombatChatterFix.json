@@ -1,0 +1,17 @@
+{
+ "game": "LE1",
+ "files": [
+  {
+   "filename": "SFXGame.pcc",
+   "applytoalllocalizations": false,
+   "changes": [
+    {
+     "entryname": "BioChatterSystem.CanPlayLine",
+     "scriptupdate": {
+      "scriptfilename": "CanPlayLine.uc"
+     }
+    }
+   ]
+  }
+ ]
+}
