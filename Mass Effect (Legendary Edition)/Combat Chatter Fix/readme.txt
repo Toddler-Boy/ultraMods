@@ -1,4 +1,4 @@
-Ultra Combat Chatter Fix for Mass Effect (Legendary Edition)
+Combat Chatter Fix for Mass Effect (Legendary Edition)
 
 The problem
 In Mass Effect 1 the short combat voice lines of enemies and squad mates fall silent after loading a save or
