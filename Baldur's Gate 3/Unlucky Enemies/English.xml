@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<contentList>
+    <content contentuid="UnluckyEnemies_Attack_Name" version="1">Unlucky Enemies</content>
+    <content contentuid="UnluckyEnemies_Attack_Description" version="1">The enemy's attack roll is a natural 1.</content>
+    <content contentuid="UnluckyEnemies_Save_Description" version="1">The enemy's saving throw is a natural 1.</content>
+    <content contentuid="UnluckyEnemies_Status_Name" version="1">Unlucky Enemies</content>
+    <content contentuid="UnluckyEnemies_Status_Description" version="1">Enemies roll a 1 against this character.</content>
+</contentList>

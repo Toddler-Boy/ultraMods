@@ -1,0 +1,7 @@
+{
+    "RequiredVersion": 20,
+    "ModTable": "@FOLDER@",
+    "FeatureFlags": [
+        "Lua"
+    ]
+}

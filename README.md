@@ -8,6 +8,8 @@ Game mods, one folder per game and one per mod inside it. Code that more than on
 | Far Cry 4 | Spatial Audio Fix | The same, as `xinput9_1_0.dll` |
 | Far Cry Primal | Spatial Audio Fix | The same, as `xinput9_1_0.dll` |
 | Mass Effect (Legendary Edition) | Combat Chatter Fix | Mass Effect 1's enemy and squad combat voice lines (the Geth's death cries among them) play again after loading a save or travelling: a merge mod adding one condition to the shared cooldown check, so time stamps from before the load count as expired |
+| Baldur's Gate 3 | Always Roll 20 | Every d20 the party and its allies roll is a natural 20, damage dice roll their maximum, saves get +10 and initiative +20: a Script Extender mod giving them a status with the game's own roll boosts and a reaction that sets each attack roll to 20 |
+| Baldur's Gate 3 | Unlucky Enemies | Every enemy attack on the party and its allies is a natural 1, and so are enemies' saving throws against their spells: a Script Extender mod giving them reactions that set the enemy's roll to 1 |
 
 `ultraPatcher` switches a game's byte patches on and off, see its [README](ultraPatcher/README.md).
 
@@ -20,4 +22,5 @@ Windows, Visual Studio 2026 with clang-cl, CMake 4.3, 7-Zip on the path.
 ```
 
 Every mod ends up in `Builds/vs/mods/<game>/<mod>/` with its readme and licences, zipped as `<mod>.zip` ready for
-Nexus Mods. Mass Effect merge mods ship their checked-in `.m3m`.
+Nexus Mods. Mass Effect merge mods ship their checked-in `.m3m`; Baldur's Gate 3 mods are packed into a `.pak` with
+Norbyte's LSLib, which the build downloads.

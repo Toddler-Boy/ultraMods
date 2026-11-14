@@ -28,6 +28,7 @@ FetchContent_MakeAvailable (minhook)
 # Every built mod lands in mods/<game>/<mod> with what its zip holds; build.sh zips and deploys from there
 set (mods_dir ${CMAKE_BINARY_DIR}/mods)
 
+include (common/larian_mod/larian_mod.cmake)
 include (common/merge_mod/merge_mod.cmake)
 include (common/spatial_audio_fix/spatial_audio_fix.cmake)
 

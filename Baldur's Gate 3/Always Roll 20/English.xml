@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<contentList>
+    <content contentuid="AlwaysRoll20_Attack_Name" version="1">Always Roll 20</content>
+    <content contentuid="AlwaysRoll20_Attack_Description" version="1">The attack roll is a natural 20.</content>
+    <content contentuid="AlwaysRoll20_Status_Name" version="1">Always Roll 20</content>
+    <content contentuid="AlwaysRoll20_Status_Description" version="1">Every roll is a natural 20 and every damage roll its maximum.</content>
+</contentList>
