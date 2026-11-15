@@ -1,0 +1,10 @@
+[BIOInput.ini SFXGame.SFXGameModeDefault]
++Bindings=( Name="F11", Command="AdjustCredits +50000", Shift=True )
++Bindings=( Name="F10", Command="GiveXP 1000", Shift=True )
+
+[BIOInput.ini SFXGame.SFXGameModeCommand]
++Bindings=( Name="F11", Command="AdjustCredits +50000", Shift=True )
++Bindings=( Name="F10", Command="GiveXP 1000", Shift=True )
+
+[BIOInput.ini SFXGame.SFXGameModeVehicle]
++Bindings=( Name="F10", Command="GiveXP 1000", Shift=True )

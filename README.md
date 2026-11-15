@@ -8,6 +8,8 @@ Game mods, one folder per game and one per mod inside it. Code that more than on
 | Far Cry 4 | Spatial Audio Fix | The same, as `xinput9_1_0.dll` |
 | Far Cry Primal | Spatial Audio Fix | The same, as `xinput9_1_0.dll` |
 | Mass Effect (Legendary Edition) | Combat Chatter Fix | Mass Effect 1's enemy and squad combat voice lines (the Geth's death cries among them) play again after loading a save or travelling: a merge mod adding one condition to the shared cooldown check, so time stamps from before the load count as expired |
+| Mass Effect (Legendary Edition) | Timed Autosave | Mass Effect 1 autosaves every 5 minutes while the game allows saving, counted from the last save or load of any kind: a merge mod switching on the timed autosave the game ships switched off, through the one function that calls it |
+| Mass Effect (Legendary Edition) | Cheat Keys | Mass Effect 1: Shift+F11 gives 50,000 credits and Shift+F10 gives 1,000 experience points through the game's own console commands: a DLC mod whose config delta adds the bindings to the game's key lists, the Coalesced file is not replaced |
 | Baldur's Gate 3 | Always Roll 20 | Every d20 the party and its allies roll is a natural 20, damage dice roll their maximum, saves get +10 and initiative +20: a Script Extender mod giving them a status with the game's own roll boosts and a reaction that sets each attack roll to 20 |
 | Baldur's Gate 3 | Unlucky Enemies | Every enemy attack on the party and its allies is a natural 1, and so are enemies' saving throws against their spells: a Script Extender mod giving them reactions that set the enemy's roll to 1 |
 
